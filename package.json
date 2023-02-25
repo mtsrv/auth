@@ -1,0 +1,28 @@
+{
+  "name": "@mtsrv/auth",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mtsrv/auth.git"
+  },
+  "author": "Sabato Luca Guadagno <o0th@pm.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mtsrv/auth/issues"
+  },
+  "homepage": "https://github.com/mtsrv/auth#readme",
+  "devDependencies": {
+    "wrangler": "^2.10.0"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "^7.0.1",
+    "fido2-lib": "^3.3.5",
+    "itty-router": "^3.0.11"
+  }
+}

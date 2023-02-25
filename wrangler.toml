@@ -1,0 +1,7 @@
+name = "auth"
+main = "src/index.js"
+
+node_compat = true
+compatibility_date = "2023-02-21"
+
+account_id = "fff968f91aaccbe6a07682d172155182"
