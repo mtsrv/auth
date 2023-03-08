@@ -5,3 +5,7 @@ node_compat = true
 compatibility_date = "2023-02-21"
 
 account_id = "fff968f91aaccbe6a07682d172155182"
+
+d1_databases = [
+  { binding = "db", database_name = "cfs-auth", database_id = "4a34703a-2dab-46af-9664-193bdd88d397" },
+]

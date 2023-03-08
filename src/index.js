@@ -8,48 +8,45 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server'
 
-const response = (body, opts = {}) => {
-  return new Response(JSON.stringify(body), {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, OPTIONS, DELETE',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Content-Type': 'application/json'
-    },
-    status: 200,
-    ...opts
-  })
-}
+import { response } from './modules/response'
+import { knex } from './modules/knex'
 
 const router = Router()
-let users = []
 
 router.get('/', (_, env) => {
   return response({ service: 'mtsrv-auth', version: env.VERSION })
 })
 
-router.get('/users', (request, env) => {
+router.get('/users', async (request, env) => {
+  const selectQuery = knex('users').toString()
+  const { results: users } = await env.db.prepare(selectQuery).all()
+
   return response({ users })
 })
 
 router.get('/register/:username', async (request, env) => {
   const { username } = request.params
 
-  const user = {
-    userID: Math.floor(Math.random() * 1000),
-    userName: username
+  const query = knex('users').where({ userName: username }).toString()
+  const { results: users } = await env.db.prepare(query).all()
+
+  if (Array.isArray(users) && users.length > 0) {
+    return response({ oops: 'username already taken' }, { status: 400 })
   }
 
+  const user = { userName: username }
   const options = generateRegistrationOptions({
     rpName: 'mtsrv',
     rpID: 'mtsrv',
     ...user
   })
 
-  user.challenge = options.challenge
-  users.push(user)
+  user.userChallenge = options.challenge
 
-  return response({ options })
+  const insertQuery = knex('users').insert(user).toString()
+  const result = await env.db.prepare(insertQuery).run()
+
+  return response({ result, options })
 })
 
 router.all('*', () => {
