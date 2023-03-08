@@ -1,3 +1,5 @@
-```
-testing out authn with cloudflare
+### Local development
+
+```bash
+npm run dev
 ```
