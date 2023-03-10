@@ -20,13 +20,19 @@ router.get('/', (_, env) => {
 })
 
 router.get('/users', async (request, env) => {
-  const selectQuery = knex('users').leftJoin('credentials', 'users.userID', 'credentials.userID').toString()
+  const selectQuery = knex('users').toString()
   const { results: users } = await env.db.prepare(selectQuery).all()
+
+  for (const user of users) {
+    const credentialQuery = knex('credentials').where({ userID: user.userID }).toString()
+    const { results: credentials } = await env.db.prepare(credentialQuery).all()
+    user.userCredentials = credentials
+  }
 
   return response({ users })
 })
 
-router.post('/option', async (request, env) => {
+router.post('/register/options', async (request, env) => {
   const { username } = await request.json()
 
   const query = knex('users').where({ userName: username }).toString()
@@ -51,9 +57,8 @@ router.post('/option', async (request, env) => {
   return response({ result, options })
 })
 
-router.post('/register', async (request, env) => {
+router.post('/register/verify', async (request, env) => {
   const { username, registrationResponse } = await request.json()
-  console.log(username, registrationResponse)
 
   const selectQuery = knex('users').where({ userName: username }).toString()
   const user = await env.db.prepare(selectQuery).first()
@@ -82,6 +87,65 @@ router.post('/register', async (request, env) => {
 
   const result = await env.db.prepare(insertQuery).run()
   return response({ result })
+})
+
+router.post('/login/options', async (request, env) => {
+  const { username } = await request.json()
+
+  const query = knex('users').where({ userName: username }).toString()
+  const user = await env.db.prepare(query).first()
+
+  if (!user) {
+    return response({ oops: 'username not found' }, { status: 400 })
+  }
+
+  const credentialQuery = knex('credentials').where({ userID: user.userID }).toString()
+  const { results: credentials } = await env.db.prepare(credentialQuery).all()
+
+  const options = generateAuthenticationOptions({
+    userVerification: 'preferred',
+    rpID: 'localhost',
+    allowCredentials: credentials.map((credential) => ({
+      id: isoBase64URL.toBuffer(credential.credentialID),
+      type: 'public-key'
+    }))
+  })
+
+  const updateQuery = knex('users')
+    .where({ userID: user.userID })
+    .update('challenge', options.challenge)
+    .toString()
+
+  const results = await env.db.prepare(updateQuery).run()
+  return response({ results, options })
+})
+
+
+router.post('/login/verify', async (request, env) => {
+  const { username, authenticationResponse } = await request.json()
+
+  const query = knex('users').where({ userName: username }).toString()
+  const user = await env.db.prepare(query).first()
+
+  if (!user) {
+    return response({ oops: 'username not found' }, { status: 400 })
+  }
+
+  const credentialQuery = knex('credentials').where({ userID: user.userID }).toString()
+  const { results: credentials } = await env.db.prepare(credentialQuery).all()
+
+  const authenticator = credentials.find((credential) => credential.credentialID === authenticationResponse.id)
+  authenticator.credentialPublicKey = isoBase64URL.toBuffer(authenticator.credentialPublicKey)
+
+  const verification = await verifyAuthenticationResponse({
+    response: authenticationResponse,
+    expectedChallenge: user.challenge,
+    expectedOrigin: 'http://localhost:5173',
+    expectedRPID: 'localhost',
+    authenticator,
+  })
+
+  return response({ verification })
 })
 
 router.options('*', () => {
