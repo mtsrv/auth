@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "wrangler dev --local --persist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:migration": "wrangler d1 migrations apply cfs-auth --local"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@simplewebauthn/server": "^7.0.1",
-    "fido2-lib": "^3.3.5",
     "itty-router": "^3.0.11",
     "knex": "^2.4.2"
   }

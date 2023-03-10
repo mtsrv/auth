@@ -4,6 +4,6 @@ drop table if exists `users`;
 
 create table if not exists `users` (
   `userID` integer primary key autoincrement not null,
-  `userName` text not null,
+  `userName` text unique not null,
   `userChallenge` text
 );

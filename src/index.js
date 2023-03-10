@@ -18,14 +18,14 @@ router.get('/', (_, env) => {
 })
 
 router.get('/users', async (request, env) => {
-  const selectQuery = knex('users').toString()
+  const selectQuery = knex('users').leftJoin('credentials', 'users.userID', 'credentials.userID').toString()
   const { results: users } = await env.db.prepare(selectQuery).all()
 
   return response({ users })
 })
 
-router.get('/register/:username', async (request, env) => {
-  const { username } = request.params
+router.post('/register', async (request, env) => {
+  const { username } = await request.json()
 
   const query = knex('users').where({ userName: username }).toString()
   const { results: users } = await env.db.prepare(query).all()
@@ -47,6 +47,42 @@ router.get('/register/:username', async (request, env) => {
   const result = await env.db.prepare(insertQuery).run()
 
   return response({ result, options })
+})
+
+router.post('/verify', async (request, env) => {
+  const { username, registrationResult } = await request.json()
+
+  const selectQuery = knex('users').where({ userName: username }).toString()
+  const user = await env.db.prepare(selectQuery).first()
+
+  if (!user) {
+    return response({ oops: 'username not found' }, { status: 400 })
+  }
+
+  const verification = await verifyRegistrationResponse({
+    response: registrationResult,
+    expectedChallenge: user.challenge,
+    expectedOrigin: 'mtsrv',
+    expectedRPID: 'mtsrv'
+  })
+
+  if (!verification.verified) {
+    return response({ oops: 'verification failed' }, { status: 400 })
+  }
+
+  const insertQuery = knex('credentials').insert({
+    userID: user.userID,
+    credentialID: verification.registrationInfo.credentialID,
+    credentialPublicKey: verification.registrationInfo.credentialPublicKey,
+    credentialCounter: verification.registrationInfo.counter
+  }).toString()
+
+  const result = await env.db.prepare(insertQuery).run()
+  return response({ result })
+})
+
+router.options('*', () => {
+  return response({})
 })
 
 router.all('*', () => {
