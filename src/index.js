@@ -113,7 +113,7 @@ router.post('/login/options', async (request, env) => {
 
   const updateQuery = knex('users')
     .where({ userID: user.userID })
-    .update('challenge', options.challenge)
+    .update('userChallenge', options.challenge)
     .toString()
 
   const results = await env.db.prepare(updateQuery).run()
@@ -135,11 +135,16 @@ router.post('/login/verify', async (request, env) => {
   const { results: credentials } = await env.db.prepare(credentialQuery).all()
 
   const authenticator = credentials.find((credential) => credential.credentialID === authenticationResponse.id)
+
+  if (!authenticator) {
+    return response({ oops: 'credentials not found' }, { status: 400 })
+  }
+
   authenticator.credentialPublicKey = isoBase64URL.toBuffer(authenticator.credentialPublicKey)
 
   const verification = await verifyAuthenticationResponse({
     response: authenticationResponse,
-    expectedChallenge: user.challenge,
+    expectedChallenge: user.userChallenge,
     expectedOrigin: 'http://localhost:5173',
     expectedRPID: 'localhost',
     authenticator,
