@@ -1,4 +1,5 @@
 import { Router } from 'itty-router'
+
 import {
   // Registration
   generateRegistrationOptions,
@@ -149,6 +150,10 @@ router.post('/login/verify', async (request, env) => {
     expectedRPID: 'localhost',
     authenticator,
   })
+
+  if (!verification.verified) {
+    return response({ oops: 'verification failed' }, { status: 400 })
+  }
 
   return response({ verification })
 })
