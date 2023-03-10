@@ -8,6 +8,8 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server'
 
+import { isoBase64URL } from '@simplewebauthn/server/helpers'
+
 import { response } from './modules/response'
 import { knex } from './modules/knex'
 
@@ -24,7 +26,7 @@ router.get('/users', async (request, env) => {
   return response({ users })
 })
 
-router.post('/register', async (request, env) => {
+router.post('/option', async (request, env) => {
   const { username } = await request.json()
 
   const query = knex('users').where({ userName: username }).toString()
@@ -37,7 +39,7 @@ router.post('/register', async (request, env) => {
   const user = { userName: username }
   const options = generateRegistrationOptions({
     rpName: 'mtsrv',
-    rpID: 'mtsrv',
+    rpID: 'localhost',
     ...user
   })
 
@@ -49,8 +51,9 @@ router.post('/register', async (request, env) => {
   return response({ result, options })
 })
 
-router.post('/verify', async (request, env) => {
-  const { username, registrationResult } = await request.json()
+router.post('/register', async (request, env) => {
+  const { username, registrationResponse } = await request.json()
+  console.log(username, registrationResponse)
 
   const selectQuery = knex('users').where({ userName: username }).toString()
   const user = await env.db.prepare(selectQuery).first()
@@ -60,10 +63,10 @@ router.post('/verify', async (request, env) => {
   }
 
   const verification = await verifyRegistrationResponse({
-    response: registrationResult,
-    expectedChallenge: user.challenge,
-    expectedOrigin: 'mtsrv',
-    expectedRPID: 'mtsrv'
+    response: registrationResponse,
+    expectedChallenge: user.userChallenge,
+    expectedOrigin: 'http://localhost:5173',
+    expectedRPID: 'localhost'
   })
 
   if (!verification.verified) {
@@ -72,8 +75,8 @@ router.post('/verify', async (request, env) => {
 
   const insertQuery = knex('credentials').insert({
     userID: user.userID,
-    credentialID: verification.registrationInfo.credentialID,
-    credentialPublicKey: verification.registrationInfo.credentialPublicKey,
+    credentialID: isoBase64URL.fromBuffer(verification.registrationInfo.credentialID),
+    credentialPublicKey: isoBase64URL.fromBuffer(verification.registrationInfo.credentialPublicKey),
     credentialCounter: verification.registrationInfo.counter
   }).toString()
 
