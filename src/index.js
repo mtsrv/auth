@@ -72,8 +72,9 @@ router.post('/register/verify', async (request, env) => {
     response: registrationResponse,
     expectedChallenge: user.userChallenge,
     expectedOrigin: 'http://localhost:5173',
-    expectedRPID: 'localhost'
-  })
+    expectedRPID: 'localhost',
+    requireUserVerification: false
+  }).catch(err => console.log(err))
 
   if (!verification.verified) {
     return response({ oops: 'verification failed' }, { status: 400 })
@@ -148,6 +149,7 @@ router.post('/login/verify', async (request, env) => {
     expectedChallenge: user.userChallenge,
     expectedOrigin: 'http://localhost:5173',
     expectedRPID: 'localhost',
+    requireUserVerification: false,
     authenticator,
   })
 
