@@ -160,9 +160,7 @@ router.post('/login/verify', async (request, env) => {
   return response({ verification })
 })
 
-router.options('*', () => {
-  return response({})
-})
+router.options('*', () => response())
 
 router.all('*', () => {
   return response({ oops: 'route not found' }, { status: 404 })
